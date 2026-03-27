@@ -22,3 +22,6 @@ Microservices-based digital banking system built with Java and Spring Boot.
 - Practice microservices architecture
 - Event-driven communication
 - Clean architecture principles
+
+## Como Rodar
+docker-compose up -d postgres pgadmin
