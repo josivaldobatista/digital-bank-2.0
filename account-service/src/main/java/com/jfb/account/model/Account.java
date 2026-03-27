@@ -10,10 +10,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "accounts", indexes = {
-        @Index(name = "idx_account_number", columnList = "account_number", unique = true),
-        @Index(name = "idx_account_customer", columnList = "customer_id")
-})
+@Table(name = "accounts")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
@@ -28,36 +25,39 @@ public class Account {
     @EqualsAndHashCode.Include
     private UUID id;
 
-    @Column(name = "account_number", nullable = false, unique = true)
+    @Column(name = "account_number", nullable = false, unique = true, length = 30)
     private String accountNumber;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private AccountType accountType = AccountType.CHECKING;
 
     @Column(name = "customer_id", nullable = false)
     private UUID customerId;
 
-    @Column(name = "customer_name")
+    @Column(name = "customer_name", length = 150)
     private String customerName;
 
-    @Column(name = "customer_cpf")
+    @Column(name = "customer_cpf", length = 11)
     private String customerCpf;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
+    private AccountType accountType = AccountType.CHECKING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private AccountStatus status = AccountStatus.ACTIVE;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(nullable = false, precision = 19, scale = 4)
+    @Builder.Default
     private BigDecimal balance = BigDecimal.ZERO;
 
-    @Column(name = "blocked_amount", precision = 19, scale = 2)
+    @Column(name = "blocked_amount", nullable = false, precision = 19, scale = 4)
+    @Builder.Default
     private BigDecimal blockedAmount = BigDecimal.ZERO;
 
     @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    // Métodos de domínio (Rich Domain Model) - comportamento da conta
     public void deposit(BigDecimal amount) {
         validateAmount(amount);
         this.balance = this.balance.add(amount);
@@ -66,7 +66,7 @@ public class Account {
     public void withdraw(BigDecimal amount) {
         validateAmount(amount);
         if (getAvailableBalance().compareTo(amount) < 0) {
-            throw new IllegalStateException("Insufficient balance");
+            throw new IllegalStateException("Saldo insuficiente para saque");
         }
         this.balance = this.balance.subtract(amount);
     }
@@ -78,7 +78,7 @@ public class Account {
     public void blockAmount(BigDecimal amount) {
         validateAmount(amount);
         if (getAvailableBalance().compareTo(amount) < 0) {
-            throw new IllegalStateException("Insufficient available balance");
+            throw new IllegalStateException("Saldo disponível insuficiente para bloquear");
         }
         this.blockedAmount = this.blockedAmount.add(amount);
     }
@@ -86,14 +86,14 @@ public class Account {
     public void unblockAmount(BigDecimal amount) {
         validateAmount(amount);
         if (blockedAmount.compareTo(amount) < 0) {
-            throw new IllegalStateException("Blocked amount insufficient");
+            throw new IllegalStateException("Valor bloqueado insuficiente");
         }
         this.blockedAmount = this.blockedAmount.subtract(amount);
     }
 
     private void validateAmount(BigDecimal amount) {
-        if (amount == null || amount.signum() <= 0) {
-            throw new IllegalArgumentException("Invalid amount");
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Valor deve ser positivo");
         }
     }
 }

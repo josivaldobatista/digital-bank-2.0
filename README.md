@@ -24,4 +24,4 @@ Microservices-based digital banking system built with Java and Spring Boot.
 - Clean architecture principles
 
 ## Como Rodar
-docker-compose up -d postgres pgadmin
+docker compose up -d customer-postgres account-postgres pgadmin

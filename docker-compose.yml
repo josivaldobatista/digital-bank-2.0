@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
 
-  postgres:
+  customer-postgres:
     image: postgres:16-alpine
     container_name: customer-postgres
     restart: unless-stopped
@@ -13,7 +13,25 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - customer_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  account-postgres:
+    image: postgres:16-alpine
+    container_name: account-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: account_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - account_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -22,7 +40,7 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: customer-pgadmin
+    container_name: bank-pgadmin
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
@@ -30,37 +48,17 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      postgres:
+      customer-postgres:
         condition: service_healthy
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-
-  # Servico do customer-service (quando voce quiser rodar via Docker tambem)
-  customer-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: customer-service
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/customer_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-    depends_on:
-      postgres:
+      account-postgres:
         condition: service_healthy
-    networks:
-      - customer-network
 
 networks:
-  customer-network:
+  bank-network:
     driver: bridge
 
 volumes:
-  postgres_data:
+  customer_postgres_data:
     driver: local
-  pgadmin_data:
+  account_postgres_data:
     driver: local
